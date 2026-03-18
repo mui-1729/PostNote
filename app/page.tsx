@@ -1,72 +1,83 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import PostItem from "../components/PostItem";
 
 type Post = {
   id: number;
-  text: string;
+  content: string;
+  created_at?: string;
 };
 
 export default function Home() {
-  const [text, setText] = useState("");
   const [posts, setPosts] = useState<Post[]>([]);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editText, setEditText] = useState("");
+  const [newContent, setNewContent] = useState("");
 
-  const handlePost = () => {
-    setPosts([...posts, { id: Date.now(), text: text }]);
-    setText("");
+  useEffect(() => {
+    const fetchPosts = async () => {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) console.error(error);
+      else setPosts(data);
+    };
+    fetchPosts();
+  }, []);
+
+  const handlePost = async () => {
+    if (!newContent) return;
+    const { error, data } = await supabase
+      .from("posts")
+      .insert([{ content: newContent }])
+      .select();
+    if (error) {
+      console.error(error);
+      alert(`投稿に失敗しました: ${error.message}`);
+    } else if (data) {
+      setPosts([data[0], ...posts]);
+      setNewContent("");
+    }
   };
 
-  const handleEditStart = (post: Post) => {
-    setEditingId(post.id);
-    setEditText(post.text);
+  const handleEditSave = async (id: number, newContent: string) => {
+    const { error } = await supabase
+      .from("posts")
+      .update({ content: newContent })
+      .eq("id", id);
+    if (error) console.error(error);
+    else
+      setPosts(
+        posts.map((p) => (p.id === id ? { ...p, content: newContent } : p)),
+      );
   };
 
-  const handleEditSave = () => {
-    setPosts(
-      posts.map((p) => (p.id === editingId ? { ...p, text: editText } : p)),
-    );
-    setEditingId(null);
-    setEditText("");
-  };
-
-  const handleDelete = (id: number) => {
-    setPosts(posts.filter((p) => p.id !== id));
+  const handleDelete = async (id: number) => {
+    const { error } = await supabase.from("posts").delete().eq("id", id);
+    if (error) console.error(error);
+    else setPosts(posts.filter((p) => p.id !== id));
   };
 
   return (
-    <main style={{ padding: 20 }}>
+    <div>
       <h1>PostNote</h1>
-
       <input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="つぶやく"
+        type="text"
+        value={newContent}
+        onChange={(e) => setNewContent(e.target.value)}
+        placeholder="新しい投稿"
       />
       <button onClick={handlePost}>投稿</button>
-
       <ul>
         {posts.map((p) => (
-          <li key={p.id}>
-            {editingId === p.id ? (
-              <>
-                <input
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                />
-                <button onClick={handleEditSave}>保存</button>
-                <button onClick={() => setEditingId(null)}>キャンセル</button>
-              </>
-            ) : (
-              <>
-                {p.text}:
-                <button onClick={() => handleEditStart(p)}>編集</button>
-                <button onClick={() => handleDelete(p.id)}>削除</button>
-              </>
-            )}
-          </li>
+          <PostItem
+            key={p.id}
+            post={p}
+            onEdit={handleEditSave}
+            onDelete={handleDelete}
+          />
         ))}
       </ul>
-    </main>
+    </div>
   );
 }
