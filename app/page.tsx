@@ -1,47 +1,51 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import PostItem from "../components/PostItem";
-
-type Post = {
-  id: number;
-  content: string;
-  created_at?: string;
-};
+import { Post } from "@/types";
+import PostForm from "@/components/PostForm";
+import PostList from "@/components/PostList";
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newContent, setNewContent] = useState("");
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const { data, error } = await supabase
-        .from("posts")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) {
-        console.error(error);
-        alert("エラーが発生しました");
-      } else setPosts(data);
+      try {
+        const { data, error } = await supabase
+          .from("posts")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (error) {
+          console.error(error);
+          alert("エラーが発生しました");
+        } else if (data) {
+          setPosts(data as Post[]);
+        }
+      } finally {
+        setInitialLoading(false);
+      }
     };
     fetchPosts();
   }, []);
 
-  const handlePost = async () => {
-    if (!newContent || loading) return;
+  const handlePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newContent.trim() || loading) return;
     setLoading(true);
     try {
       const { error, data } = await supabase
         .from("posts")
-        .insert([{ content: newContent }])
+        .insert([{ content: newContent.trim() }])
         .select();
 
       if (error) {
         console.error(error);
         alert(`投稿に失敗しました: ${error.message}`);
       } else if (data) {
-        setPosts([data[0], ...posts]);
+        setPosts([data[0] as Post, ...posts]);
         setNewContent("");
       }
     } finally {
@@ -68,25 +72,27 @@ export default function Home() {
   };
 
   return (
-    <div>
-      <h1>PostNote</h1>
-      <input
-        type="text"
-        value={newContent}
-        onChange={(e) => setNewContent(e.target.value)}
-        placeholder="新しい投稿"
-      />
-      <button disabled={loading} onClick={handlePost}>{loading ? "投稿中..." : "投稿"}</button>
-      <ul>
-        {posts.map((p) => (
-          <PostItem
-            key={p.id}
-            post={p}
-            onEdit={handleEditSave}
-            onDelete={handleDelete}
-          />
-        ))}
-      </ul>
+    <div className="min-h-screen bg-gray-100 py-10 px-4">
+      <div className="max-w-xl mx-auto">
+        <header className="mb-10 text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">PostNote</h1>
+          <p className="text-gray-500 mt-2 text-sm">あなたの思考をシンプルに記録しよう</p>
+        </header>
+
+        <PostForm
+          newContent={newContent}
+          setNewContent={setNewContent}
+          handlePost={handlePost}
+          loading={loading}
+        />
+
+        <PostList
+          posts={posts}
+          onEdit={handleEditSave}
+          onDelete={handleDelete}
+          loading={initialLoading}
+        />
+      </div>
     </div>
   );
 }
