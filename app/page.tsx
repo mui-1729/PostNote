@@ -58,6 +58,7 @@ export default function Home() {
     else setPosts(posts.filter((p) => p.id !== id));
   };
 
+  
   return (
     <div>
       <h1>PostNote</h1>
