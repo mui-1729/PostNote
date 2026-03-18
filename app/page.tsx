@@ -12,6 +12,7 @@ type Post = {
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newContent, setNewContent] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -19,24 +20,32 @@ export default function Home() {
         .from("posts")
         .select("*")
         .order("created_at", { ascending: false });
-      if (error) console.error(error);
-      else setPosts(data);
+      if (error) {
+        console.error(error);
+        alert("エラーが発生しました");
+      } else setPosts(data);
     };
     fetchPosts();
   }, []);
 
   const handlePost = async () => {
-    if (!newContent) return;
-    const { error, data } = await supabase
-      .from("posts")
-      .insert([{ content: newContent }])
-      .select();
-    if (error) {
-      console.error(error);
-      alert(`投稿に失敗しました: ${error.message}`);
-    } else if (data) {
-      setPosts([data[0], ...posts]);
-      setNewContent("");
+    if (!newContent || loading) return;
+    setLoading(true);
+    try {
+      const { error, data } = await supabase
+        .from("posts")
+        .insert([{ content: newContent }])
+        .select();
+
+      if (error) {
+        console.error(error);
+        alert(`投稿に失敗しました: ${error.message}`);
+      } else if (data) {
+        setPosts([data[0], ...posts]);
+        setNewContent("");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -58,7 +67,6 @@ export default function Home() {
     else setPosts(posts.filter((p) => p.id !== id));
   };
 
-  
   return (
     <div>
       <h1>PostNote</h1>
@@ -68,7 +76,7 @@ export default function Home() {
         onChange={(e) => setNewContent(e.target.value)}
         placeholder="新しい投稿"
       />
-      <button onClick={handlePost}>投稿</button>
+      <button disabled={loading} onClick={handlePost}>{loading ? "投稿中..." : "投稿"}</button>
       <ul>
         {posts.map((p) => (
           <PostItem
