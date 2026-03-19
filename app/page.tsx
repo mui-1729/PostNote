@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Post } from "@/types";
 import PostForm from "@/components/PostForm";
 import PostList from "@/components/PostList";
+import { classifyText } from "@/lib/huggingface";
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -35,10 +36,25 @@ export default function Home() {
     e.preventDefault();
     if (!newContent.trim() || loading) return;
     setLoading(true);
+    
     try {
+      // 1. Hugging Faceでラベルを取得
+      let label = "未分類";
+      try {
+        console.log("Calling classifyText with:", newContent.trim());
+        const hfResult = await classifyText(newContent.trim());
+        console.log("Hugging Face result:", hfResult);
+        // サーバー側でパース済みのラベルを取得
+        label = hfResult?.label || "未分類";
+      } catch (hfError: any) {
+        console.error("Hugging Face error catching in page.tsx:", hfError);
+        alert(`AIとの通信中にエラーが発生しました: ${hfError.message}`);
+      }
+
+      // 2. Supabaseに保存
       const { error, data } = await supabase
         .from("posts")
-        .insert([{ content: newContent.trim() }])
+        .insert([{ content: newContent.trim(), label }])
         .select();
 
       if (error) {
@@ -62,6 +78,18 @@ export default function Home() {
     else
       setPosts(
         posts.map((p) => (p.id === id ? { ...p, content: newContent } : p)),
+      );
+  };
+
+  const handleEditLabel = async (id: number, newLabel: string) => {
+    const { error } = await supabase
+      .from("posts")
+      .update({ label: newLabel })
+      .eq("id", id);
+    if (error) console.error(error);
+    else
+      setPosts(
+        posts.map((p) => (p.id === id ? { ...p, label: newLabel } : p)),
       );
   };
 
@@ -89,6 +117,7 @@ export default function Home() {
         <PostList
           posts={posts}
           onEdit={handleEditSave}
+          onEditLabel={handleEditLabel}
           onDelete={handleDelete}
           loading={initialLoading}
         />

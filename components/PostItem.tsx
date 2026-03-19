@@ -4,17 +4,32 @@ import { Post } from "../types";
 interface Props {
   post: Post;
   onEdit: (id: number, content: string) => void;
+  onEditLabel: (id: number, label: string) => void;
   onDelete: (id: number) => void;
 }
 
-export default function PostItem({ post, onEdit, onDelete }: Props) {
+const LABEL_COLORS: Record<string, string> = {
+  質問: "bg-blue-100 text-blue-600",
+  気づき: "bg-green-100 text-green-600",
+  モヤモヤ: "bg-yellow-100 text-yellow-600",
+  面白い: "bg-pink-100 text-pink-600",
+};
+
+export default function PostItem({ post, onEdit, onEditLabel, onDelete }: Props) {
   const [editing, setEditing] = useState(false);
   const [content, setContent] = useState(post.content);
+  const [labelEditing, setLabelEditing] = useState(false);
 
   const handleSave = () => {
     if (!content.trim()) return;
     onEdit(post.id, content);
     setEditing(false);
+  };
+
+  const handleLabelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newLabel = e.target.value;
+    onEditLabel(post.id, newLabel);
+    setLabelEditing(false);
   };
 
   const formattedDate = post.created_at
@@ -27,8 +42,37 @@ export default function PostItem({ post, onEdit, onDelete }: Props) {
       })
     : "";
 
+  const badgeColor = post.label && LABEL_COLORS[post.label] ? LABEL_COLORS[post.label] : "bg-gray-100 text-gray-600";
+  const displayLabel = post.label || "未分類";
+
   return (
     <li className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-4 transition-shadow hover:shadow-md">
+      <div className="mb-3">
+        {labelEditing ? (
+          <select
+            value={displayLabel}
+            onChange={handleLabelChange}
+            onBlur={() => setLabelEditing(false)}
+            autoFocus
+            className="text-xs font-medium px-2 py-1 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="質問">質問</option>
+            <option value="気づき">気づき</option>
+            <option value="モヤモヤ">モヤモヤ</option>
+            <option value="面白い">面白い</option>
+            {displayLabel === "未分類" && <option value="未分類" disabled>未分類</option>}
+          </select>
+        ) : (
+          <button
+            onClick={() => setLabelEditing(true)}
+            className={`text-xs font-semibold px-2.5 py-1 rounded-full transition-opacity hover:opacity-80 ${badgeColor}`}
+            title="ラベルを変更する"
+          >
+            {displayLabel}
+          </button>
+        )}
+      </div>
+
       {editing ? (
         <div className="flex flex-col gap-3">
           <textarea

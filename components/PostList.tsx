@@ -4,11 +4,12 @@ import PostItem from "./PostItem";
 interface Props {
   posts: Post[];
   onEdit: (id: number, content: string) => void;
+  onEditLabel: (id: number, label: string) => void;
   onDelete: (id: number) => void;
   loading: boolean;
 }
 
-export default function PostList({ posts, onEdit, onDelete, loading }: Props) {
+export default function PostList({ posts, onEdit, onEditLabel, onDelete, loading }: Props) {
   if (loading && posts.length === 0) {
     return (
       <div className="text-center py-10 text-gray-500">
@@ -33,6 +34,7 @@ export default function PostList({ posts, onEdit, onDelete, loading }: Props) {
           key={p.id}
           post={p}
           onEdit={onEdit}
+          onEditLabel={onEditLabel}
           onDelete={onDelete}
         />
       ))}
