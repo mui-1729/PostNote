@@ -106,7 +106,9 @@ export default function Home() {
 
   // ユニークなラベルのリストを作成
   const uniqueLabels = Array.from(
-    new Set(posts.map((p) => p.label).filter(Boolean)),
+    new Set(
+      posts.map((p) => p.label).filter((label): label is string => !!label),
+    ),
   );
 
   // 選択されたラベルで投稿をフィルタリング
