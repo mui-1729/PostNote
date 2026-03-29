@@ -5,6 +5,7 @@ import { Post } from "@/types";
 import PostForm from "@/components/PostForm";
 import PostList from "@/components/PostList";
 import { classifyText } from "@/lib/huggingface";
+import { PostgrestError } from "@supabase/supabase-js";
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -52,7 +53,7 @@ export default function Home() {
       }
 
       // 2. Supabaseに保存
-      const { error, data } = await supabase
+      const { error, data }: { error: PostgrestError | null, data: Post[] | null } = await supabase
         .from("posts")
         .insert([{ content: newContent.trim(), label }])
         .select();
