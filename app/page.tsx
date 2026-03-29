@@ -12,6 +12,7 @@ export default function Home() {
   const [newContent, setNewContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -103,6 +104,16 @@ export default function Home() {
     else setPosts(posts.filter((p) => p.id !== id));
   };
 
+  // ユニークなラベルのリストを作成
+  const uniqueLabels = Array.from(
+    new Set(posts.map((p) => p.label).filter(Boolean)),
+  );
+
+  // 選択されたラベルで投稿をフィルタリング
+  const filteredPosts = selectedLabel
+    ? posts.filter((p) => p.label === selectedLabel)
+    : posts;
+
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4">
       <div className="max-w-xl mx-auto">
@@ -115,6 +126,35 @@ export default function Home() {
           </p>
         </header>
 
+        {/* ラベルフィルター */}
+        {uniqueLabels.length > 0 && (
+          <div className="mb-6 flex flex-wrap gap-2 justify-center">
+            <button
+              onClick={() => setSelectedLabel(null)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                selectedLabel === null
+                  ? "bg-gray-800 text-white"
+                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              すべて
+            </button>
+            {uniqueLabels.map((label) => (
+              <button
+                key={label}
+                onClick={() => setSelectedLabel(label)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  selectedLabel === label
+                    ? "bg-blue-600 text-white border-transparent"
+                    : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <PostForm
           newContent={newContent}
           setNewContent={setNewContent}
@@ -123,7 +163,7 @@ export default function Home() {
         />
 
         <PostList
-          posts={posts}
+          posts={filteredPosts}
           onEdit={handleEditSave}
           onEditLabel={handleEditLabel}
           onDelete={handleDelete}
