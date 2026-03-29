@@ -1,5 +1,21 @@
 "use server";
 
+/**
+ * Hugging Face APIからのレスポンスの型定義
+ */
+type HFResponseObject = {
+  labels: string[];
+  scores: number[];
+};
+
+type HFResponseArrayItem = {
+  label: string;
+  score: number;
+};
+
+// APIは複数の形式でレスポンスを返す可能性があるため、Union型で両方を許容します
+type HFData = HFResponseObject | HFResponseArrayItem[];
+
 export const classifyText = async (text: string) => {
   const token = process.env.NEXT_PUBLIC_HF_API_TOKEN;
 
@@ -38,21 +54,19 @@ export const classifyText = async (text: string) => {
       );
     }
 
-    type HFResponse = {
-      labels: string[];
-      scores: number[];
-    };
-
-    const data: HFResponse = await response.json();
+    const data: HFData = await response.json();
     return formatResult(data);
-  } catch (error: any) {
-    console.error("Hugging Face Network/Fetch Error:", error.message);
+  } catch (error: unknown) {
+    console.error(
+      "Hugging Face Network/Fetch Error:",
+      error instanceof Error ? error.message : String(error),
+    );
     throw error;
   }
 };
 
 // レスポンスの形式を統一し、英語ラベルを日本語に変換するヘルパー
-function formatResult(data: any) {
+function formatResult(data: HFData) {
   let topLabel = "未分類";
   let rawLabel = "";
 

@@ -37,7 +37,7 @@ export default function Home() {
     e.preventDefault();
     if (!newContent.trim() || loading) return;
     setLoading(true);
-    
+
     try {
       // 1. Hugging Faceでラベルを取得
       let label = "未分類";
@@ -47,13 +47,18 @@ export default function Home() {
         console.log("Hugging Face result:", hfResult);
         // サーバー側でパース済みのラベルを取得
         label = hfResult?.label || "未分類";
-      } catch (hfError: any) {
+      } catch (hfError: unknown) {
         console.error("Hugging Face error catching in page.tsx:", hfError);
-        alert(`AIとの通信中にエラーが発生しました: ${hfError.message}`);
+        const errorMessage =
+          hfError instanceof Error ? hfError.message : String(hfError);
+        alert(`AIとの通信中にエラーが発生しました: ${errorMessage}`);
       }
 
       // 2. Supabaseに保存
-      const { error, data }: { error: PostgrestError | null, data: Post[] | null } = await supabase
+      const {
+        error,
+        data,
+      }: { error: PostgrestError | null; data: Post[] | null } = await supabase
         .from("posts")
         .insert([{ content: newContent.trim(), label }])
         .select();
@@ -89,9 +94,7 @@ export default function Home() {
       .eq("id", id);
     if (error) console.error(error);
     else
-      setPosts(
-        posts.map((p) => (p.id === id ? { ...p, label: newLabel } : p)),
-      );
+      setPosts(posts.map((p) => (p.id === id ? { ...p, label: newLabel } : p)));
   };
 
   const handleDelete = async (id: number) => {
@@ -104,8 +107,12 @@ export default function Home() {
     <div className="min-h-screen bg-gray-100 py-10 px-4">
       <div className="max-w-xl mx-auto">
         <header className="mb-10 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">PostNote</h1>
-          <p className="text-gray-500 mt-2 text-sm">あなたの思考をシンプルに記録しよう</p>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            PostNote
+          </h1>
+          <p className="text-gray-500 mt-2 text-sm">
+            あなたの思考をシンプルに記録しよう
+          </p>
         </header>
 
         <PostForm
