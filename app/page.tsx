@@ -13,6 +13,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -111,10 +112,14 @@ export default function Home() {
     ),
   );
 
-  // 選択されたラベルで投稿をフィルタリング
-  const filteredPosts = selectedLabel
-    ? posts.filter((p) => p.label === selectedLabel)
-    : posts;
+  // 選択されたラベルと検索キーワードで投稿をフィルタリング
+  const filteredPosts = posts.filter((p) => {
+    const matchLabel = selectedLabel ? p.label === selectedLabel : true;
+    const matchQuery = searchQuery
+      ? p.content.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
+    return matchLabel && matchQuery;
+  });
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4">
@@ -127,6 +132,35 @@ export default function Home() {
             あなたの思考をシンプルに記録しよう
           </p>
         </header>
+
+        {/* 検索バー */}
+        <div className="mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="メモをキーワードで検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-all"
+            />
+            <div className="absolute left-3 top-3 text-gray-400">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
 
         {/* ラベルフィルター */}
         {uniqueLabels.length > 0 && (
