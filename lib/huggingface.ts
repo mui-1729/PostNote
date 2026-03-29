@@ -23,7 +23,8 @@ export const classifyText = async (text: string) => {
     throw new Error("Hugging Face API Token is not configured.");
   }
 
-  const modelId = "facebook/bart-large-mnli";
+  // 日本語対応の多言語ゼロショット分類モデルに変更
+  const modelId = "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli";
   const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
 
   try {
@@ -39,8 +40,8 @@ export const classifyText = async (text: string) => {
       body: JSON.stringify({
         inputs: text,
         parameters: {
-          // 英語のラベルの方がモデルの理解度が高いため、英語で判定してからマッピングします
-          candidate_labels: ["question", "insight", "worry", "interesting"],
+          // 日本語対応モデルなので、直接日本語のラベルを候補として渡します
+          candidate_labels: ["質問", "気づき", "モヤモヤ", "面白い"],
         },
       }),
       cache: "no-store",
@@ -68,24 +69,13 @@ export const classifyText = async (text: string) => {
 // レスポンスの形式を統一し、英語ラベルを日本語に変換するヘルパー
 function formatResult(data: HFData) {
   let topLabel = "未分類";
-  let rawLabel = "";
 
   if (Array.isArray(data)) {
-    rawLabel = data[0]?.label || "";
+    topLabel = data[0]?.label || "未分類";
   } else if (data && data.labels && data.labels[0]) {
-    rawLabel = data.labels[0];
+    topLabel = data.labels[0];
   }
 
-  // マッピング処理
-  const mapping: { [key: string]: string } = {
-    question: "質問",
-    insight: "気づき",
-    worry: "モヤモヤ",
-    interesting: "面白い",
-  };
-
-  topLabel = mapping[rawLabel] || "未分類";
-
-  console.log(`Extracted Label (Raw: ${rawLabel}) -> ${topLabel}`);
+  console.log(`Extracted Label -> ${topLabel}`);
   return { label: topLabel };
 }
